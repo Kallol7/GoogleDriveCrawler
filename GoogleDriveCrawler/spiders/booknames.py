@@ -1,30 +1,13 @@
-from scrapy.http import Request
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
 from urllib.parse import parse_qs
 
 domain = "#domain_url"
 
-class GoogleDriveCrawlerSpider(CrawlSpider):
-    custom_settings = {
-        'ROBOTSTXT_OBEY' : True,
-        'ITEM_PIPELINES': {
-            'scrapy.pipelines.files.FilesPipeline': 1,
-        },
-        'FILES_STORE' : 'downloads',
-        'FILES_RESULT_FIELD' : 'files',
-        'FILES_EXPIRES' : 300, # 5 minutes
-        'DOWNLOAD_WARNSIZE' : 100 * 1024 * 1024,
-        'AUTOTHROTTLE_ENABLED' : True,
-        'AUTOTHROTTLE_START_DELAY' : 5,
-        'AUTOTHROTTLE_MAX_DELAY' : 60,
-        'AUTOTHROTTLE_TARGET_CONCURRENCY' : 1.0,
-        'AUTOTHROTTLE_DEBUG' : False
-    }
-
-    name = "googledrive"
+class BookNames(CrawlSpider):    
+    name = "booknames"
     allowed_domains = [f"{domain}", "drive.google.com", "drive.usercontent.google.com"]
-    start_urls = [f"https://{domain}/category/genre/page/{num}" for num in range(1,)]
+    start_urls = [f"https://{domain}/category/item/page/{num}" for num in range(1,85)]
 
     rules = (
         Rule(LinkExtractor(allow=f"https://{domain}"), callback="parse_item"),
@@ -65,17 +48,13 @@ class GoogleDriveCrawlerSpider(CrawlSpider):
                 else:
                     file_id=file_id[5]
                 
-
-                file_name =  f"{file_id}"+".pdf"
-                
                 download_link = f"https://drive.usercontent.google.com/u/0/uc?id={file_id}&export=download"
+            
+            file_name =  response.css(".entry-title::text").get()
+            if file_name is None:
+                file_name = file_id
+            file_name = file_name+".pdf"
                 
-
-            yield Request(
-                download_link, callback=self.save_file, 
-                cb_kwargs={"file_name":file_name}
-            )
-
-    def save_file(self, response, file_name):
-        item = {'file_urls': [response.url], 'files': [file_name]}
-        yield item
+            yield {
+                file_id: [file_name, download_link]
+            }
