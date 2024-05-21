@@ -1,8 +1,9 @@
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
 from urllib.parse import parse_qs
+from .. import config
 
-domain = "#domain_url"
+domain = config.domain
 
 class BookNames(CrawlSpider):    
     name = "booknames"
